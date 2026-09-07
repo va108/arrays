@@ -244,6 +244,11 @@ trait ArrayableTrait
             }
         }
 
+        if (empty($expand)) {
+            /** @infection-ignore-all No expansion requested: avoid calling and iterating extraFields(). */
+            return $result;
+        }
+
         foreach ($this->extraFields() as $field => $definition) {
             if (is_int($field)) {
                 /** @var string $definition */
