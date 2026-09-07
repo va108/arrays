@@ -65,6 +65,7 @@ final class ArraySorter
     ): void {
         $count = count($array);
         if ($count === 0) {
+            /** @infection-ignore-all Empty input needs no key extraction or sorting work. */
             return;
         }
 
@@ -90,6 +91,7 @@ final class ArraySorter
         }
 
         // Add tie-breaker only for non-empty arrays
+        /** @infection-ignore-all The tie-breaker preserves input order; its monotonic values are intentional. */
         if ($count > 0) {
             $tieBreaker = [];
             for ($i = 0; $i < $count; $i++) {

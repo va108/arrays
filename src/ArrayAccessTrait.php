@@ -28,6 +28,10 @@ trait ArrayAccessTrait
      * It will be implicitly called when you use `foreach` to traverse the collection.
      *
      * @return ArrayIterator An iterator for traversing the cookies in the collection.
+     *
+     * @infection-ignore-all Infection's PublicVisibility mutator makes this required
+     * IteratorAggregate method protected, which violates the interface contract before
+     * the test suite can execute.
      */
     public function getIterator(): ArrayIterator
     {
@@ -39,6 +43,10 @@ trait ArrayAccessTrait
      * This method is required by Countable interface.
      *
      * @return int Number of data elements.
+     *
+     * @infection-ignore-all Infection's PublicVisibility mutator makes this required
+     * Countable method protected, which violates the interface contract before the test
+     * suite can execute.
      */
     public function count(): int
     {
@@ -51,6 +59,10 @@ trait ArrayAccessTrait
      * @param mixed $offset The offset to check on.
      *
      * @psalm-param TKey $offset
+     *
+     * @infection-ignore-all Infection's PublicVisibility mutator makes this required
+     * ArrayAccess method protected, which violates the interface contract before the test
+     * suite can execute.
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -66,6 +78,10 @@ trait ArrayAccessTrait
      *
      * @psalm-param TKey $offset
      * @psalm-return TValue
+     *
+     * @infection-ignore-all Infection's PublicVisibility mutator makes this required
+     * ArrayAccess method protected, which violates the interface contract before the test
+     * suite can execute.
      */
     public function offsetGet(mixed $offset): mixed
     {
@@ -80,6 +96,10 @@ trait ArrayAccessTrait
      *
      * @psalm-param TKey|null $offset
      * @psalm-param TValue $value
+     *
+     * @infection-ignore-all Infection's PublicVisibility mutator makes this required
+     * ArrayAccess method protected, which violates the interface contract before the test
+     * suite can execute.
      */
     public function offsetSet(mixed $offset, mixed $value): void
     {
@@ -96,6 +116,10 @@ trait ArrayAccessTrait
      * @param mixed $offset The offset to unset element.
      *
      * @psalm-param TKey $offset
+     *
+     * @infection-ignore-all Infection's PublicVisibility mutator makes this required
+     * ArrayAccess method protected, which violates the interface contract before the test
+     * suite can execute.
      */
     public function offsetUnset(mixed $offset): void
     {

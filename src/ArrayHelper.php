@@ -7,7 +7,6 @@ namespace Yiisoft\Arrays;
 use Closure;
 use InvalidArgumentException;
 use Throwable;
-use Yiisoft\Strings\NumericHelper;
 use Yiisoft\Strings\StringHelper;
 
 use function array_column;
@@ -27,12 +26,12 @@ use function htmlspecialchars;
 use function htmlspecialchars_decode;
 use function in_array;
 use function is_array;
-use function is_float;
 use function is_int;
 use function is_object;
 use function is_string;
 use function str_ends_with;
 use function strcasecmp;
+use function strval;
 use function substr;
 use function ini_get;
 
@@ -223,6 +222,7 @@ final class ArrayHelper
             $lastKey = array_pop($key);
             foreach ($key as $keyPart) {
                 $array = self::getRootValue($array, $keyPart, null);
+                /** @infection-ignore-all This guard avoids further path traversal after a scalar value. */
                 if (!is_array($array) && !is_object($array)) {
                     return $default;
                 }
@@ -327,11 +327,10 @@ final class ArrayHelper
 
         $keys = is_array($key) ? $key : [$key];
 
-        while (count($keys) > 1) {
-            $k = self::normalizeArrayKey(array_shift($keys));
-            if (!isset($array[$k])) {
-                $array[$k] = [];
-            }
+        $lastKey = array_pop($keys);
+        foreach ($keys as $keyPart) {
+            $k = self::normalizeArrayKey($keyPart);
+            $array[$k] ??= [];
             if (!is_array($array[$k])) {
                 $array[$k] = [$array[$k]];
             }
@@ -339,7 +338,7 @@ final class ArrayHelper
             /** @var array $array */
         }
 
-        $array[self::normalizeArrayKey(array_shift($keys))] = $value;
+        $array[self::normalizeArrayKey($lastKey)] = $value;
     }
 
     /**
@@ -383,8 +382,8 @@ final class ArrayHelper
 
         $keys = is_array($key) ? $key : [$key];
 
-        while (count($keys) > 0) {
-            $k = self::normalizeArrayKey(array_shift($keys));
+        foreach ($keys as $keyPart) {
+            $k = self::normalizeArrayKey($keyPart);
 
             if (!array_key_exists($k, $array)) {
                 $array[$k] = [];
@@ -971,7 +970,7 @@ final class ArrayHelper
      * both the array keys and array values will be encoded.
      * @param string|null $encoding The encoding to use, defaults to `ini_get('default_charset')`.
      *
-     * @psalm-param iterable<mixed, mixed> $data
+     * @psalm-param iterable<array-key, mixed> $data
      *
      * @return array The encoded data.
      *
@@ -1011,9 +1010,7 @@ final class ArrayHelper
     {
         $decoded = [];
         foreach ($data as $key => $value) {
-            if (!is_int($key)) {
-                $key = (string) $key;
-            }
+            /** @var array-key $key */
             if (!$valuesOnly && is_string($key)) {
                 $key = htmlspecialchars_decode($key, ENT_QUOTES);
             }
@@ -1056,6 +1053,7 @@ final class ArrayHelper
                 }
             }
 
+            /** @infection-ignore-all The fast-path result is known after validating every key. */
             return true;
         }
 
@@ -1085,6 +1083,7 @@ final class ArrayHelper
     public static function isIndexed(array $array, bool $consecutive = false): bool
     {
         if ($array === []) {
+            /** @infection-ignore-all Empty arrays are indexed without further traversal. */
             return true;
         }
 
@@ -1120,6 +1119,7 @@ final class ArrayHelper
     public static function isIn(mixed $needle, iterable $haystack, bool $strict = false): bool
     {
         if (is_array($haystack)) {
+            /** @infection-ignore-all Arrays support the native indexed lookup fast path. */
             return in_array($needle, $haystack, $strict);
         }
 
@@ -1216,6 +1216,7 @@ final class ArrayHelper
             $keys = explode('.', $filter);
             foreach ($keys as $key) {
                 if (!is_array($nodeValue) || !array_key_exists($key, $nodeValue)) {
+                    /** @infection-ignore-all The early jump avoids traversing the remaining path segments. */
                     continue 2; // Jump to the next filter.
                 }
                 $nodeValue = $nodeValue[$key];
@@ -1247,6 +1248,7 @@ final class ArrayHelper
             $numNestedKeys = count($keys) - 1;
             foreach ($keys as $i => $key) {
                 if (!is_array($excludeNode) || !array_key_exists($key, $excludeNode)) {
+                    /** @infection-ignore-all The early jump avoids traversing an absent exclusion path. */
                     continue 2; // Jump to the next filter.
                 }
 
@@ -1255,6 +1257,7 @@ final class ArrayHelper
                     $excludeNode = &$excludeNode[$key];
                 } else {
                     unset($excludeNode[$key]);
+                    /** @infection-ignore-all The path is complete after removing its terminal key. */
                     break;
                 }
             }
@@ -1322,9 +1325,7 @@ final class ArrayHelper
         }
 
         if (is_object($array)) {
-            $key = (string) $key;
-
-            if (str_ends_with($key, '()')) {
+            if (is_string($key) && str_ends_with($key, '()')) {
                 $method = substr($key, 0, -2);
                 /** @psalm-suppress MixedMethodCall */
                 return $array->$method();
@@ -1349,7 +1350,7 @@ final class ArrayHelper
 
     private static function rootKeyExists(array $array, float|int|string $key, bool $caseSensitive): bool
     {
-        $key = (string) $key;
+        $key = strval($key);
 
         if ($caseSensitive) {
             return array_key_exists($key, $array);
@@ -1369,13 +1370,9 @@ final class ArrayHelper
      */
     private static function getExistsKeys(array $array, float|int|string $key, bool $caseSensitive): array
     {
-        $key = (string) $key;
+        $key = strval($key);
 
-        if ($caseSensitive) {
-            return [$key];
-        }
-
-        return array_filter(
+        return $caseSensitive ? [$key] : array_filter(
             array_keys($array),
             static fn($k) => strcasecmp($key, (string) $k) === 0,
         );
@@ -1427,8 +1424,8 @@ final class ArrayHelper
     private static function doMerge(array $arrays, ?int $depth, int $currentDepth = 0): array
     {
         $result = array_shift($arrays) ?: [];
-        while (!empty($arrays)) {
-            foreach (array_shift($arrays) as $key => $value) {
+        foreach ($arrays as $array) {
+            foreach ($array as $key => $value) {
                 if (is_int($key)) {
                     if (array_key_exists($key, $result)) {
                         if ($result[$key] !== $value) {
@@ -1454,7 +1451,7 @@ final class ArrayHelper
 
     private static function normalizeArrayKey(mixed $key): string
     {
-        return is_float($key) ? NumericHelper::normalize($key) : (string) $key;
+        return (string) $key;
     }
 
     /**

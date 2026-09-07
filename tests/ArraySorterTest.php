@@ -101,6 +101,18 @@ final class ArraySorterTest extends TestCase
         $this->assertEquals($obj3, $models[2]);
     }
 
+    public function testMultisortPreservesOrderForEqualKeys(): void
+    {
+        $array = [
+            ['name' => 'same', 'id' => 1],
+            ['name' => 'same', 'id' => 2],
+        ];
+
+        ArraySorter::multisort($array, 'name');
+
+        $this->assertSame([1, 2], array_column($array, 'id'));
+    }
+
     public function testMultisortUseSort(): void
     {
         // single key
