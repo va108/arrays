@@ -95,6 +95,12 @@ final class KeyAndPathExistsTest extends TestCase
         $this->assertFalse(ArrayHelper::keyExists(['Name' => 'value'], 'name'));
         $this->assertFalse(ArrayHelper::keyExists(['User' => ['Name' => 'value']], ['User', 'name']));
         $this->assertFalse(ArrayHelper::pathExists(['User' => ['Name' => 'value']], 'user.name'));
+        $this->assertFalse(ArrayHelper::keyExists(['User' => 'value'], ['User', 'name']));
+        $this->assertFalse(ArrayHelper::keyExists(
+            ['User' => 'value', 'USER' => ['name' => 'value']],
+            ['user', 'name'],
+            false,
+        ));
     }
 
     /**

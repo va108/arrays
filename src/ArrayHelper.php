@@ -922,6 +922,9 @@ final class ArrayHelper
             /** @psalm-var non-empty-array<array-key,float|int|string> $key */
 
             foreach (self::getExistsKeys($array, array_shift($key), $caseSensitive) as $existKey) {
+                if (!is_array($array)) {
+                    return false;
+                }
                 $array = self::getRootValue($array, $existKey, null);
                 if (is_array($array) && self::keyExists($array, $key, $caseSensitive)) {
                     return true;
@@ -1310,42 +1313,38 @@ final class ArrayHelper
     }
 
     /**
-     * @param mixed $array Array or object to extract value from, otherwise method will return $default.
+     * @param array|object $array Array or object to extract value from.
      * @param float|int|string $key Key name of the array element, object property name or object method like `getValue()`.
      * @param mixed $default The default value to be returned if the specified array key does not exist. Not used when
      * getting value from an object.
      *
      * @return mixed The value of the element if found, default value otherwise.
      */
-    private static function getRootValue(mixed $array, float|int|string $key, mixed $default): mixed
+    private static function getRootValue(array|object $array, float|int|string $key, mixed $default): mixed
     {
         if (is_array($array)) {
             $key = self::normalizeArrayKey($key);
             return array_key_exists($key, $array) ? $array[$key] : $default;
         }
 
-        if (is_object($array)) {
-            if (is_string($key) && str_ends_with($key, '()')) {
-                $method = substr($key, 0, -2);
-                /** @psalm-suppress MixedMethodCall */
-                return $array->$method();
-            }
-
-            try {
-                /** @psalm-suppress MixedPropertyFetch */
-                return $array::$$key;
-            } catch (Throwable) {
-                /**
-                 * This is expected to fail if the property does not exist, or __get() is not implemented.
-                 * It is not reliably possible to check whether a property is accessible beforehand.
-                 *
-                 * @psalm-suppress MixedPropertyFetch
-                 */
-                return $array->$key;
-            }
+        if (is_string($key) && str_ends_with($key, '()')) {
+            $method = substr($key, 0, -2);
+            /** @psalm-suppress MixedMethodCall */
+            return $array->$method();
         }
 
-        return $default;
+        try {
+            /** @psalm-suppress MixedPropertyFetch */
+            return $array::$$key;
+        } catch (Throwable) {
+            /**
+             * This is expected to fail if the property does not exist, or __get() is not implemented.
+             * It is not reliably possible to check whether a property is accessible beforehand.
+             *
+             * @psalm-suppress MixedPropertyFetch
+             */
+            return $array->$key;
+        }
     }
 
     private static function rootKeyExists(array $array, float|int|string $key, bool $caseSensitive): bool

@@ -72,6 +72,7 @@ final class ArraySorter
         $keys = is_array($key) ? $key : [$key];
         $keysCount = count($keys);
         if ($keysCount === 0) {
+            /** @infection-ignore-all An empty key list is a no-op; avoid calling array_multisort without sort keys. */
             return;
         }
 

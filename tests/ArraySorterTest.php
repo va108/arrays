@@ -25,6 +25,10 @@ final class ArraySorterTest extends TestCase
         ArraySorter::multisort($dataEmpty, '');
         $this->assertEquals([], $dataEmpty);
 
+        $data = [['name' => 'a']];
+        ArraySorter::multisort($data, []);
+        $this->assertSame([['name' => 'a']], $data);
+
         // single key
         $array = [
             ['name' => 'b', 'age' => 3],
